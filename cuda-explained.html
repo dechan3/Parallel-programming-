@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CUDA C — Explained Simply</title>
+<style>
+  :root{
+    --green:#76b900; --green-dark:#3c5f00; --green-bg:#eef7df;
+    --blue:#2f6db3;  --blue-bg:#e9f1fb;
+    --ink:#1e293b;   --muted:#5b6b7f;  --line:#dbe3ec;
+    --card:#ffffff;  --page:#f7f9fc;
+    --code-bg:#101a26; --code-ink:#e7eef7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.65; font-size:16.5px;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:28px 20px 90px}
+  header.hero{
+    background:linear-gradient(135deg,#12220a,#1f3a06 45%,#0e1c05);
+    color:#fff; border-radius:18px; padding:34px 30px; margin-bottom:26px;
+  }
+  header.hero h1{margin:0 0 8px; font-size:30px; line-height:1.2}
+  header.hero p{margin:0; color:#cfe3ae; font-size:15.5px}
+  header.hero .tag{display:inline-block;background:#76b900;color:#0f1a04;font-weight:700;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 11px;margin-bottom:12px}
+  h2{font-size:23px; margin:42px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--line)}
+  h3{font-size:18.5px; margin:28px 0 8px}
+  h4{font-size:16px; margin:20px 0 6px; color:#22303f}
+  p{margin:10px 0}
+  a{color:var(--blue)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.88em;
+    background:#eaeff5; color:#16324f; padding:1.5px 5px; border-radius:5px}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:16px 18px; border-radius:12px;
+    overflow-x:auto; font-size:13.3px; line-height:1.6; margin:12px 0;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre code{background:none; color:inherit; padding:0; font-size:inherit}
+  .k{color:#7fd0ff}      /* keywords */
+  .f{color:#ffd479}      /* functions */
+  .c{color:#7d9c6f; font-style:italic} /* comments */
+  .n{color:#ff9db1}      /* numbers / built-ins */
+  .toc{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 20px}
+  .toc b{font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+  .toc ol{margin:8px 0 0; padding-left:22px; columns:2; column-gap:28px}
+  .toc li{margin:3px 0; font-size:14.5px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin:16px 0}
+  .plain{border-left:5px solid var(--green); background:var(--green-bg)}
+  .warn{border-left:5px solid #e0a800; background:#fff8e1}
+  .slide{border-left:5px solid var(--blue); background:var(--blue-bg)}
+  .plain .lab,.warn .lab,.slide .lab{display:block; font-size:11.5px; font-weight:800; letter-spacing:.08em;
+    text-transform:uppercase; margin-bottom:6px}
+  .plain .lab{color:var(--green-dark)} .warn .lab{color:#8a6d00} .slide .lab{color:#1d4f8c}
+  .card p:first-of-type{margin-top:0} .card p:last-child{margin-bottom:0}
+  table{width:100%; border-collapse:collapse; margin:14px 0; background:#fff; font-size:14.5px}
+  th,td{border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top}
+  th{background:#eef2f7; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#41556b}
+  svg{max-width:100%; height:auto; display:block; margin:16px auto}
+  figure{margin:18px 0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px}
+  figcaption{font-size:13px; color:var(--muted); text-align:center; margin-top:6px}
+  details{background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin:10px 0}
+  details summary{cursor:pointer; font-weight:600}
+  details[open] summary{margin-bottom:8px; color:var(--green-dark)}
+  ul,ol{padding-left:24px} li{margin:5px 0}
+  .small{font-size:14px; color:var(--muted)}
+  .pill{display:inline-block; background:#e8eef6; color:#31456b; border-radius:999px; padding:2px 10px;
+    font-size:12.5px; font-weight:600; margin-right:6px}
+  footer{margin-top:50px; padding-top:18px; border-top:1px solid var(--line); font-size:13.5px; color:var(--muted)}
+  .kv{display:grid; grid-template-columns:190px 1fr; gap:8px 14px; font-size:15px}
+  .kv div:nth-child(odd){font-weight:600; color:#25384f}
+  @media (max-width:640px){ .toc ol{columns:1} .kv{grid-template-columns:1fr} .kv div:nth-child(odd){margin-top:8px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Study companion</span>
+  <h1>CUDA C, explained like you've never seen it</h1>
+  <p>A plain-English walkthrough of the 28-slide deck <em>“CUDA C — Compute Unified Device Architecture”</em>. Every section maps to slide numbers so you can jump between the two.</p>
+</header>
+
+<div class="toc">
+  <b>Jump to</b>
+  <ol>
+    <li><a href="#tldr">The whole deck in 30 seconds</a></li>
+    <li><a href="#map">What each page of the deck is doing</a></li>
+    <li><a href="#why">Why GPUs exist (slides 2–8)</a></li>
+    <li><a href="#twoworlds">Two computers in one (slides 2, 10, 14–15)</a></li>
+    <li><a href="#kernel">Anatomy of a kernel (slides 11–13)</a></li>
+    <li><a href="#threads">Threads, blocks, grids (slides 5–6, 16–21)</a></li>
+    <li><a href="#formula">The index formula, finally explained (slide 20)</a></li>
+    <li><a href="#walk">Every code example, line by line (slides 12–25)</a></li>
+    <li><a href="#cooperate">Shared memory, sync, race conditions (slides 22–25)</a></li>
+    <li><a href="#bugs">“Wait — the slide code looks wrong” (yes, here's why)</a></li>
+    <li><a href="#compare">CUDA vs MPI vs UPC (slides 26–27)</a></li>
+    <li><a href="#gotchas">Beginner mistakes cheat-sheet</a></li>
+    <li><a href="#quiz">Self-check quiz</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="tldr">1. The whole deck in 30 seconds</h2>
+
+<p>A CPU is a <b>few very smart workers</b>. A GPU is a <b>stadium of thousands of simpler workers</b>. For work that can be split into thousands of identical little jobs, the stadium wins by a landslide — that's why GPUs are used for AI, simulations, image processing, crypto.</p>
+
+<p>The problem: those thousands of workers are on a <em>different chip with its own memory</em>. So to use them you must:</p>
+
+<ol>
+  <li><b>Copy</b> your data over to the GPU's memory.</li>
+  <li><b>Tell thousands of GPU threads to run the same small function</b> (called a <em>kernel</em>) — each thread handles one little piece of the data.</li>
+  <li><b>Copy</b> the results back.</li>
+</ol>
+
+<p>That's it. That's CUDA. The rest of the deck is just the details of those three steps: how you <em>launch</em> the threads (<code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code>), how each thread figures out <em>which piece of data is mine</em> (<code>threadIdx.x + blockIdx.x * blockDim.x</code>), and how threads <em>combine their answers safely</em> (shared memory, <code>__syncthreads()</code>, <code>atomicAdd()</code>).</p>
+
+<div class="card plain">
+  <span class="lab">If you only remember one sentence</span>
+  <p><b>CUDA is normal C running on the CPU that occasionally ships data to the GPU, launches a function across thousands of GPU threads at once, and ships the answers back.</b></p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="map">2. What each page of the deck is doing</h2>
+
+<table>
+  <tr><th>Slides</th><th>Topic</th><th>Why it's there</th></tr>
+  <tr><td>1–9</td><td>Background: what a GPU is, GFLOPS, history, “GPGPU”</td><td>Motivation. <b>No code.</b> If you're short on time, skim it.</td></tr>
+  <tr><td>10–11</td><td>The CUDA model + the 4 things CUDA adds to C</td><td>This is the actual vocabulary you need.</td></tr>
+  <tr><td>12–15</td><td>Hello World kernel, adding two numbers, <code>cudaMalloc/cudaMemcpy/cudaFree</code></td><td>The mechanics of GPU memory.</td></tr>
+  <tr><td>16–21</td><td>Parallelism: blocks, threads, the index formula</td><td>The heart of the deck. <b>Slow down here.</b></td></tr>
+  <tr><td>22–25</td><td>Dot product: shared memory, <code>__syncthreads()</code>, race conditions, atomics</td><td>The first “tricky” parallel algorithm.</td></tr>
+  <tr><td>26–27</td><td>CUDA vs MPI vs UPC</td><td>Vocabulary comparison for the exam. Mostly definitions.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="why">3. Why GPUs exist (slides 2–8) — the motivation part</h2>
+
+<p>These slides are building one argument: <em>CPUs got fast at doing one thing at a time, but they stopped getting faster; GPUs got fast at doing millions of things at once.</em></p>
+
+<div class="kv">
+  <div>GPU</div><div>Graphics Processing Unit — a chip built to draw 2 million pixels, 60 times a second. Drawing pixels means: <b>do the same little math to a huge pile of numbers, all at once.</b> That's exactly what scientific computing and AI need too.</div>
+  <div>GPGPU (slide 7)</div><div>“General-Purpose computing on a GPU” — using the graphics chip for <b>non</b>-graphics math: machine learning, simulations, medical imaging, crypto mining, Monte-Carlo finance. The slide lists these as typical applications.</div>
+  <div>GFLOPs / FLOPS (slide 3)</div><div>A speed unit, like “liters per second” for a pump. FLOPS = <b>FL</b>oating-point <b>O</b>perations <b>P</b>er <b>S</b>econd. GigaFLOPS = billions per second; 1000 GFLOPs = 1 TFLOP. MIPS = millions of instructions per second (frequency ÷ cycles-per-instruction).</div>
+  <div>Heterogeneous computing (slide 5)</div><div>Fancy phrase for “CPU and GPU working together”. CPU = host, piloting the program; GPU = co-processor, doing the heavy lifting.</div>
+  <div>The numbers to remember (slide 5)</div><div>An RTX 3080 has <b>8,704 CUDA cores</b> in <b>68 SMs</b> — i.e. 68 clusters of 128 little cores each. A CPU has 8 or 16 cores. That's the whole story of why GPUs are fast.</div>
+  <div>History (slides 3–4)</div><div>The idea came out of the PS3's Cell processor (2006) and PC gaming GPUs. NVIDIA released CUDA in <b>2007</b> — the software that made GPUs programmable in a C-like language instead of graphics-only tricks.</div>
+</div>
+
+<div class="card slide">
+  <span class="lab">Slide 6 — the three vocabulary words</span>
+  <p><b>Thread</b> = one worker. <b>Block</b> = a team of workers that can share notes. <b>Grid</b> = all the teams you launched. Keep this hierarchy in your head; everything else is built on it.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="twoworlds">4. Two computers in one (slides 2, 10, 14–15)</h2>
+
+<p>This is the single biggest source of confusion for beginners, so read it twice:</p>
+
+<p style="font-size:18px"><b>The CPU and GPU are two separate computers with two separate memories. They do not share RAM.</b></p>
+
+<figure>
+<svg viewBox="0 0 760 320" role="img" aria-label="Host and device: two separate memories connected by explicit copies">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="25" y="60" width="240" height="200" rx="14" fill="#eef7df" stroke="#76b900" stroke-width="2"/>
+  <text x="145" y="90" text-anchor="middle" font-size="16" font-weight="700" fill="#3c5f00">HOST — the CPU</text>
+  <rect x="50" y="108" width="190" height="56" rx="9" fill="#ffffff" stroke="#c8dca0"/>
+  <text x="145" y="131" text-anchor="middle" font-size="12.5" fill="#334">your C program</text>
+  <text x="145" y="150" text-anchor="middle" font-size="12.5" fill="#334">main(), printf, malloc…</text>
+  <rect x="50" y="176" width="190" height="60" rx="9" fill="#ffffff" stroke="#c8dca0"/>
+  <text x="145" y="199" text-anchor="middle" font-size="12.5" fill="#334">host memory (normal RAM)</text>
+  <text x="145" y="218" text-anchor="middle" font-size="11.5" fill="#667">int a[512];  ← “a” lives here</text>
+
+  <rect x="495" y="60" width="240" height="200" rx="14" fill="#e9f1fb" stroke="#2f6db3" stroke-width="2"/>
+  <text x="615" y="90" text-anchor="middle" font-size="16" font-weight="700" fill="#123a66">DEVICE — the GPU</text>
+  <rect x="520" y="108" width="190" height="56" rx="9" fill="#ffffff" stroke="#b9d2ee"/>
+  <text x="615" y="131" text-anchor="middle" font-size="12.5" fill="#334">kernels run here</text>
+  <text x="615" y="150" text-anchor="middle" font-size="12.5" fill="#334">thousands of threads at once</text>
+  <rect x="520" y="176" width="190" height="60" rx="9" fill="#ffffff" stroke="#b9d2ee"/>
+  <text x="615" y="199" text-anchor="middle" font-size="12.5" fill="#334">device memory (VRAM)</text>
+  <text x="615" y="218" text-anchor="middle" font-size="11.5" fill="#667">*dev_a ← a different “a” lives here</text>
+
+  <line x1="272" y1="120" x2="488" y2="120" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)" stroke-dasharray="6 5"/>
+  <text x="380" y="110" text-anchor="middle" font-size="11.5" fill="#334155">launch: kernel&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;()</text>
+
+  <line x1="272" y1="172" x2="488" y2="172" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text x="380" y="162" text-anchor="middle" font-size="11.5" fill="#334155">cudaMemcpy — Host → Device (send inputs)</text>
+
+  <line x1="488" y1="216" x2="272" y2="216" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+  <text x="380" y="206" text-anchor="middle" font-size="11.5" fill="#334155">cudaMemcpy — Device → Host (bring results back)</text>
+</svg>
+<figcaption>Slide 2 and slide 10 in one picture. The GPU never reaches into your RAM; you must copy data across by hand.</figcaption>
+</figure>
+
+<h3>The 6-line pattern that every CUDA program follows (slide 21 spells this out)</h3>
+
+<figure>
+<svg viewBox="0 0 760 210" role="img" aria-label="The six steps of every CUDA program">
+  <g font-family="sans-serif">
+    <!-- boxes -->
+    <g>
+      <rect x="8" y="55" width="112" height="92" rx="12" fill="#fff" stroke="#2f6db3"/>
+      <text x="64" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#123a66">1. Prepare</text>
+      <text x="64" y="103" text-anchor="middle" font-size="10.5" fill="#556">malloc + fill</text>
+      <text x="64" y="119" text-anchor="middle" font-size="10.5" fill="#556">arrays on CPU</text>
+    </g>
+    <g>
+      <rect x="132" y="55" width="112" height="92" rx="12" fill="#fff" stroke="#2f6db3"/>
+      <text x="188" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#123a66">2. Allocate</text>
+      <text x="188" y="103" text-anchor="middle" font-size="10.5" fill="#556">cudaMalloc</text>
+      <text x="188" y="119" text-anchor="middle" font-size="10.5" fill="#556">space on GPU</text>
+    </g>
+    <g>
+      <rect x="256" y="55" width="112" height="92" rx="12" fill="#fff" stroke="#2f6db3"/>
+      <text x="312" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#123a66">3. Send</text>
+      <text x="312" y="103" text-anchor="middle" font-size="10.5" fill="#556">cudaMemcpy</text>
+      <text x="312" y="119" text-anchor="middle" font-size="10.5" fill="#556">Host → Device</text>
+    </g>
+    <g>
+      <rect x="380" y="55" width="112" height="92" rx="12" fill="#eef7df" stroke="#76b900" stroke-width="2"/>
+      <text x="436" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3c5f00">4. Compute</text>
+      <text x="436" y="103" text-anchor="middle" font-size="10.5" fill="#556">kernel&lt;&lt;&lt;N,T&gt;&gt;&gt;()</text>
+      <text x="436" y="119" text-anchor="middle" font-size="10.5" fill="#556">GPU works here</text>
+    </g>
+    <g>
+      <rect x="504" y="55" width="112" height="92" rx="12" fill="#fff" stroke="#2f6db3"/>
+      <text x="560" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#123a66">5. Fetch</text>
+      <text x="560" y="103" text-anchor="middle" font-size="10.5" fill="#556">cudaMemcpy</text>
+      <text x="560" y="119" text-anchor="middle" font-size="10.5" fill="#556">Device → Host</text>
+    </g>
+    <g>
+      <rect x="628" y="55" width="112" height="92" rx="12" fill="#fff" stroke="#2f6db3"/>
+      <text x="684" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#123a66">6. Clean up</text>
+      <text x="684" y="103" text-anchor="middle" font-size="10.5" fill="#556">cudaFree</text>
+      <text x="684" y="119" text-anchor="middle" font-size="10.5" fill="#556">+ free()</text>
+    </g>
+    <!-- arrows -->
+    <g fill="#94a3b8" font-size="20">
+      <text x="120" y="106">→</text><text x="244" y="106">→</text><text x="368" y="106">→</text><text x="492" y="106">→</text><text x="616" y="106">→</text>
+    </g>
+    <text x="380" y="34" text-anchor="middle" font-size="12" fill="#5b6b7f">Only step 4 happens on the GPU. Steps 1–3, 5–6 are ordinary CPU code.</text>
+    <text x="380" y="176" text-anchor="middle" font-size="11.5" fill="#94a3b8">Every example in the deck — vector add, dot product — is just this loop with a bigger step 4.</text>
+  </g>
+</svg>
+<figcaption>Slide 21's “overall structure of a CUDA program”.</figcaption>
+</figure>
+
+<div class="warn card">
+  <span class="lab">Why beginners get crashes</span>
+  <p>A host pointer (from <code>malloc</code>) and a device pointer (from <code>cudaMalloc</code>) are <b>both just <code>int*</code> to the compiler</b>, but they point into different memories. If you accidentally pass a host pointer to a kernel, the GPU will happily read garbage from an address that means nothing to it — and your program dies with an unhelpful “illegal memory access”. Always keep the <code>dev_</code> prefix convention from the slides.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="kernel">5. Anatomy of a kernel (slides 11–13)</h2>
+
+<p>Slide 11 lists what CUDA adds to plain C. Here it is, translated:</p>
+
+<h4>a) Function qualifiers — “where does this function run?”</h4>
+<table>
+  <tr><th>Written as</th><th>Runs on</th><th>Callable from</th><th>In plain English</th></tr>
+  <tr><td><code>__global__ void KernelFunc()</code></td><td>GPU</td><td>CPU</td><td>A <b>kernel</b>. Launched from the CPU, runs on the thousands of GPU threads.</td></tr>
+  <tr><td><code>__device__ float DeviceFunc()</code></td><td>GPU</td><td>GPU only</td><td>A helper the kernel calls. The CPU can't call it.</td></tr>
+  <tr><td>(no qualifier) <code>float HostFunc()</code></td><td>CPU</td><td>CPU</td><td>Normal C. <code>main</code> is one of these.</td></tr>
+</table>
+
+<h4>b) Variable qualifiers — “where does this variable live?”</h4>
+<p><code>__shared__</code> (shared by a team of threads, fast — see section 9), <code>__constant__</code>, <code>__device__</code> for variables. Don't panic about these yet; <code>__shared__</code> is the only one you need early.</p>
+
+<h4>c) The launch syntax <code>&lt;&lt;&lt;…&gt;&gt;&gt;</code> — “how many workers, and how are they grouped?”</h4>
+<pre><code>kernel&lt;&lt;&lt; number_of_blocks , threads_per_block &gt;&gt;&gt;( arguments );</code></pre>
+<p>Triple angle brackets = “this call goes to the GPU”. This is the line that turns one function call into thousands of simultaneous executions.</p>
+
+<h4>d) The four built-in variables (slide 11)</h4>
+<p>Inside a kernel, these are magically available so each thread knows who it is:</p>
+<table>
+  <tr><th>Variable</th><th>Answers</th><th>Example value</th></tr>
+  <tr><td><code>threadIdx.x</code></td><td>“What's my seat number inside my team?”</td><td>0 … blockDim.x-1</td></tr>
+  <tr><td><code>blockIdx.x</code></td><td>“Which team am I in?”</td><td>0 … gridDim.x-1</td></tr>
+  <tr><td><code>blockDim.x</code></td><td>“How many seats per team?”</td><td>e.g. 256</td></tr>
+  <tr><td><code>gridDim.x</code></td><td>“How many teams total?”</td><td>e.g. 512</td></tr>
+</table>
+<p class="small">Each of these also has <code>.y</code> and <code>.z</code> versions (for 2D/3D data like images), but every example in your deck uses <code>.x</code>. Start with <code>.x</code>.</p>
+
+<h3>Hello World with a kernel (slide 13) — read it slowly</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> kernel( <span class="k">void</span> ) { }          <span class="c">// runs on GPU, does nothing</span>
+
+<span class="k">int</span> main( <span class="k">void</span> ) {
+    kernel<span class="n">&lt;&lt;&lt; 1, 1 &gt;&gt;&gt;</span>();                <span class="c">// launch 1 block × 1 thread</span>
+    printf( <span class="n">"Hello, World!\n"</span> );        <span class="c">// this line runs on the CPU!</span>
+    <span class="k">return</span> 0;
+}</code></pre>
+<p>Three things worth noticing, because they're exactly the things that confuse people:</p>
+<ul>
+  <li><code>&lt;&lt;&lt;1, 1&gt;&gt;&gt;</code> means <b>1 block containing 1 thread</b>. So no parallelism yet — this program computes nothing. It exists only to show you the mechanism.</li>
+  <li>The <code>printf</code> runs on the <b>CPU</b>, because only the empty <code>kernel</code> was sent to the GPU. (A <code>printf</code> <em>inside</em> a kernel would print from the GPU.)</li>
+  <li>The empty function body is not a mistake: the point of the example is that “this function was executed on the GPU, and here's the syntax that made it happen.”</li>
+</ul>
+<p>Also note slide 13's remark: <code>nvcc</code> (NVIDIA's compiler) <b>splits your file in two</b> — it compiles the <code>__global__</code> functions for the GPU and hands the rest to your normal C compiler (gcc / MSVC). That's why CUDA C is “just C” with a couple of extra keywords.</p>
+
+<h3>Adding two numbers on the GPU (slides 14–15)</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> add( <span class="k">int</span> a, <span class="k">int</span> b, <span class="k">int</span> *c) {
+    *c = a + b;
+}</code></pre>
+<p><b>Why does <code>c</code> have a star and the others don't?</b> This is the “pass by value vs pass by pointer” line the slide points out. <code>a</code> and <code>b</code> are passed <em>by value</em>: the numbers themselves are copied to the GPU, no problem. But a computed result must be <em>written somewhere</em> — and the only memory the GPU can write to is GPU memory. So <code>c</code> must be a <b>device pointer</b>. Rule of thumb: <span class="pill">data in = by value</span> <span class="pill">results out = pointer to device memory</span>.</p>
+
+<p>Then <code>main</code> looks like this (this is the pattern; section 2 of the guide above shows the 6 steps it follows):</p>
+<pre><code><span class="k">int</span> a, b, c;                       <span class="c">// HOST copies</span>
+<span class="k">int</span> *dev_a, *dev_b, *dev_c;        <span class="c">// DEVICE copies (different memory!)</span>
+<span class="k">int</span> size = <span class="k">sizeof</span>(<span class="k">int</span>);
+
+cudaMalloc( (<span class="k">void</span>**)&amp;dev_a, size );      <span class="c">// "malloc", but on the GPU</span>
+cudaMalloc( (<span class="k">void</span>**)&amp;dev_b, size );
+cudaMalloc( (<span class="k">void</span>**)&amp;dev_c, size );
+
+cudaMemcpy( dev_a, &amp;a, size, cudaMemcpyHostToDevice );   <span class="c">// ship inputs over</span>
+cudaMemcpy( dev_b, &amp;b, size, cudaMemcpyHostToDevice );
+
+add<span class="n">&lt;&lt;&lt; 1, 1 &gt;&gt;&gt;</span>( dev_a, dev_b, dev_c );      <span class="c">// 1 block, 1 thread</span>
+
+cudaMemcpy( &amp;c, dev_c, size, cudaMemcpyDeviceToHost );   <span class="c">// bring result back</span>
+
+cudaFree( dev_a ); cudaFree( dev_b ); cudaFree( dev_c ); <span class="c">// "free", but on the GPU</span></code></pre>
+
+<p>The mapping to ordinary C is the whole point of slide 14:</p>
+<table>
+  <tr><th>Ordinary C</th><th>CUDA</th><th>Meaning</th></tr>
+  <tr><td><code>malloc</code></td><td><code>cudaMalloc</code></td><td>Reserve memory <b>on the GPU</b></td></tr>
+  <tr><td><code>free</code></td><td><code>cudaFree</code></td><td>Release GPU memory</td></tr>
+  <tr><td><code>memcpy</code></td><td><code>cudaMemcpy</code></td><td>Copy — but now you must say <b>which direction</b>: <code>HostToDevice</code> or <code>DeviceToHost</code></td></tr>
+</table>
+
+<div class="card warn">
+  <span class="lab">A detail that bites everyone</span>
+  <p><code>cudaMemcpy</code>'s third argument is a number of <b>bytes</b>, not elements. For one <code>int</code> it's <code>sizeof(int)</code> = 4. For an array of N ints it's <code>N * sizeof(int)</code>. Mixing those up is the #1 silent bug in student CUDA code (and yes, the deck's array examples show <code>sizeof(int)</code> — see section 10).</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="threads">6. Threads, blocks, grids — how the GPU gets organized (slides 5–6, 16–21)</h2>
+
+<p>Slide 5 says it directly: <em>“Unlike the threads and processes of UPC/OpenMP and MPI, CUDA adds extra layers of organization of the threads”</em>. Here's the hierarchy:</p>
+
+<figure>
+<svg viewBox="0 0 760 300" role="img" aria-label="Grid, blocks and threads hierarchy">
+  <rect x="15" y="20" width="730" height="255" rx="16" fill="#f2f6fb" stroke="#94a3b8" stroke-dasharray="7 6"/>
+  <text x="38" y="48" font-size="14" font-weight="700" fill="#334155">GRID</text>
+  <text x="92" y="48" font-size="12" fill="#64748b">= everything one &lt;&lt;&lt;launch&gt;&gt;&gt; created  (gridDim.x = 3 here)</text>
+
+  <g>
+    <rect x="42" y="66" width="212" height="182" rx="12" fill="#ffffff" stroke="#2f6db3" stroke-width="1.6"/>
+    <text x="148" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#123a66">BLOCK 0</text>
+    <text x="148" y="107" text-anchor="middle" font-size="11" fill="#64748b">blockIdx.x = 0</text>
+  </g>
+  <g>
+    <rect x="274" y="66" width="212" height="182" rx="12" fill="#ffffff" stroke="#2f6db3" stroke-width="1.6"/>
+    <text x="380" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#123a66">BLOCK 1</text>
+    <text x="380" y="107" text-anchor="middle" font-size="11" fill="#64748b">blockIdx.x = 1</text>
+  </g>
+  <g>
+    <rect x="506" y="66" width="212" height="182" rx="12" fill="#ffffff" stroke="#2f6db3" stroke-width="1.6"/>
+    <text x="612" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="#123a66">BLOCK 2</text>
+    <text x="612" y="107" text-anchor="middle" font-size="11" fill="#64748b">blockIdx.x = 2</text>
+  </g>
+
+  <!-- threads inside each block (4 each, 2x2) -->
+  <g font-size="12" fill="#25400a" text-anchor="middle">
+    <rect x="66" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="85" y="146">0</text>
+    <rect x="112" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="131" y="146">1</text>
+    <rect x="158" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="177" y="146">2</text>
+    <rect x="204" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="223" y="146">3</text>
+
+    <rect x="298" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="317" y="146">0</text>
+    <rect x="344" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="363" y="146">1</text>
+    <rect x="390" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="409" y="146">2</text>
+    <rect x="436" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="455" y="146">3</text>
+
+    <rect x="530" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="549" y="146">0</text>
+    <rect x="576" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="595" y="146">1</text>
+    <rect x="622" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="641" y="146">2</text>
+    <rect x="668" y="122" width="38" height="38" rx="7" fill="#cfe9a3" stroke="#76b900"/><text x="687" y="146">3</text>
+  </g>
+  <g font-size="11" fill="#64748b" text-anchor="middle">
+    <text x="148" y="185">threads: threadIdx.x = 0..3</text>
+    <text x="380" y="185">threads: threadIdx.x = 0..3</text>
+    <text x="612" y="185">threads: threadIdx.x = 0..3</text>
+  </g>
+  <g font-size="11" fill="#94a3b8" text-anchor="middle">
+    <text x="148" y="215">blockDim.x = 4</text>
+    <text x="380" y="215">blockDim.x = 4</text>
+    <text x="612" y="215">blockDim.x = 4</text>
+  </g>
+  <text x="380" y="262" text-anchor="middle" font-size="11.5" fill="#64748b">Each thread runs the SAME kernel code; only its index numbers differ.</text>
+</svg>
+<figcaption>The hierarchy of slides 5–6: grid → blocks → threads. Blocks can't see each other's shared memory; all of them can see global memory.</figcaption>
+</figure>
+
+<h3>The two ways the deck introduces parallelism</h3>
+<p>Slides 16–18 present two extremes, both silly on their own, and slide 20 combines them:</p>
+<table>
+  <tr><th>Slides</th><th>Launch</th><th>Who indexes the array</th><th>Problem</th></tr>
+  <tr><td>16–17 (“vecadd0.cu”)</td><td><code>add&lt;&lt;&lt;N, 1&gt;&gt;&gt;</code> — N blocks, <b>1 thread each</b></td><td><code>blockIdx.x</code></td><td>Works, but each “team” is a team of one — very wasteful.</td></tr>
+  <tr><td>18 (“vecadd1.cu”)</td><td><code>add&lt;&lt;&lt;1, N&gt;&gt;&gt;</code> — 1 block, <b>N threads</b></td><td><code>threadIdx.x</code></td><td>Works, but one block can hold at most 1024 threads (slide 19), and a single block can't fill the GPU.</td></tr>
+  <tr><td>20–21 (combined)</td><td><code>add&lt;&lt;&lt;N/T, T&gt;&gt;&gt;</code> — many blocks, T threads each</td><td><code>threadIdx.x + blockIdx.x*blockDim.x</code></td><td>This is the real, professional pattern. Use this one.</td></tr>
+</table>
+
+<p>Slide 19 is a little side-quest: it shows <code>cudaGetDeviceProperties()</code> printing <b>maxThreadsPerBlock</b> (1024 on all modern GPUs) and the max grid size (about 2³¹−1 blocks per dimension). The takeaway: your block sizes are capped, so you can't just do “one giant block” — that's <em>why</em> the combined version exists.</p>
+
+<!-- ============================================================ -->
+<h2 id="formula">7. The index formula, finally explained (slide 20)</h2>
+
+<pre><code><span class="k">int</span> index = threadIdx.x + blockIdx.x * blockDim.x;</code></pre>
+
+<p>This one line terrified you, didn't it? It's just P.E. class attendance:</p>
+
+<div class="card plain">
+  <span class="lab">The classroom analogy</span>
+  <p>Imagine a class of 512 students, seated in rows (blocks) of 16. <b>How do you compute a student's overall position in the class?</b><br>
+  “All the full rows before my row, plus how far along I am in my own row.”<br><br>
+  <code>index = threadIdx.x + blockIdx.x * blockDim.x</code><br>
+  = <em>my seat in my row</em> + <em>my row number</em> × <em>seats per row</em>.</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 760 250" role="img" aria-label="Index formula applied to an array of 12 elements split into 3 blocks of 4">
+  <text x="380" y="30" text-anchor="middle" font-size="13" fill="#5b6b7f">An array of 12 elements, processed by 3 blocks of 4 threads each</text>
+
+  <!-- bracket labels for blocks -->
+  <g font-size="12" text-anchor="middle">
+    <rect x="60" y="52" width="196" height="24" rx="6" fill="#e9f1fb" stroke="#2f6db3"/>
+    <text x="158" y="69" fill="#123a66">Block 0  (blockIdx.x = 0)</text>
+    <rect x="272" y="52" width="196" height="24" rx="6" fill="#e9f1fb" stroke="#2f6db3"/>
+    <text x="370" y="69" fill="#123a66">Block 1  (blockIdx.x = 1)</text>
+    <rect x="484" y="52" width="196" height="24" rx="6" fill="#e9f1fb" stroke="#2f6db3"/>
+    <text x="582" y="69" fill="#123a66">Block 2  (blockIdx.x = 2)</text>
+  </g>
+
+  <!-- cells -->
+  <g font-size="14" text-anchor="middle">
+    <rect x="60"  y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="82"  y="124" fill="#475569">0</text>
+    <rect x="105" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="127" y="124" fill="#475569">1</text>
+    <rect x="150" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="172" y="124" fill="#475569">2</text>
+    <rect x="195" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="217" y="124" fill="#475569">3</text>
+
+    <rect x="272" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="294" y="124" fill="#475569">4</text>
+    <rect x="317" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="339" y="124" fill="#475569">5</text>
+    <rect x="362" y="95" width="45" height="46" fill="#76b900" stroke="#5b8f00"/><text x="384" y="124" fill="#ffffff" font-weight="700">6</text>
+    <rect x="407" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="429" y="124" fill="#475569">7</text>
+
+    <rect x="484" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="506" y="124" fill="#475569">8</text>
+    <rect x="529" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="551" y="124" fill="#475569">9</text>
+    <rect x="574" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="596" y="124" fill="#475569">10</text>
+    <rect x="619" y="95" width="45" height="46" fill="#fff" stroke="#cbd5e1"/><text x="641" y="124" fill="#475569">11</text>
+  </g>
+
+  <g font-size="11.5" fill="#64748b" text-anchor="middle">
+    <text x="82" y="160">t0</text><text x="127" y="160">t1</text><text x="172" y="160">t2</text><text x="217" y="160">t3</text>
+    <text x="294" y="160">t0</text><text x="339" y="160">t1</text><text x="384" y="160">t2</text><text x="429" y="160">t3</text>
+    <text x="506" y="160">t0</text><text x="551" y="160">t1</text><text x="596" y="160">t2</text><text x="641" y="160">t3</text>
+  </g>
+
+  <rect x="150" y="185" width="460" height="46" rx="10" fill="#eef7df" stroke="#76b900"/>
+  <text x="380" y="205" text-anchor="middle" font-size="12.5" fill="#3c5f00">The green cell is handled by: blockIdx.x = 1, threadIdx.x = 2, and blockDim.x = 4</text>
+  <text x="380" y="223" text-anchor="middle" font-size="12.5" fill="#3c5f00">index = 2 + 1 × 4 = <tspan font-weight="700">6</tspan>  ✓</text>
+</svg>
+<figcaption>Slide 20's formula drawn out. Note the formula works with <em>any</em> block size, not just 4.</figcaption>
+</figure>
+
+<div class="card warn">
+  <span class="lab">The trap in the formula</span>
+  <p><code>blockDim.x</code> is written with a <b>capital D</b> and no “s” after D — don't type <code>blockdims.x</code> or <code>blockDim</code>. And <code>threadIdx</code>/<code>blockIdx</code> <b>restart at 0 for every block</b>: thread 0 of block 3 and thread 0 of block 7 both have <code>threadIdx.x == 0</code>. Multiplying by <code>blockDim.x</code> is what makes each block cover a <em>different</em> stretch of the array.</p>
+</div>
+
+<p>And the launch that goes with it (slide 21):</p>
+<pre><code><span class="c">// N elements, T threads per block → N/T blocks of T threads = N workers total</span>
+add<span class="n">&lt;&lt;&lt; N/T , T &gt;&gt;&gt;</span>( dev_a, dev_b, dev_c );</code></pre>
+
+<div class="card plain">
+  <span class="lab">Reading a launch line out loud</span>
+  <p><code>add&lt;&lt;&lt;512, 256&gt;&gt;&gt;(...)</code> is read as: “Run <code>add</code> on the GPU as <b>512 blocks of 256 threads</b>” = 131,072 executions of that function, all at once. The function body is written as if for <em>one</em> thread — the launch line is what multiplies it.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="walk">8. Every code example, line by line</h2>
+
+<h3>8.1 Vector addition with blocks only (slides 16–17, <code>vecadd0.cu</code>)</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> add( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c ) {
+    c[<span class="n">blockIdx.x</span>] = a[<span class="n">blockIdx.x</span>] + b[<span class="n">blockIdx.x</span>];
+}
+<span class="c">// launched as: add&lt;&lt;&lt; N, 1 &gt;&gt;&gt;( dev_a, dev_b, dev_c );  →  N blocks, 1 thread each</span></code></pre>
+<p><b>How it works:</b> <code>&lt;&lt;&lt;N, 1&gt;&gt;&gt;</code> creates N blocks. Each block runs <code>add</code> once (since there's only 1 thread per block), and each block finds its own slot in the array through <code>blockIdx.x</code> — block 7 adds element 7. So different blocks handle different data. Multiply the number of workers, and the array gets chewed through in parallel.</p>
+<p><b>Why it's still weak:</b> 1 thread per block. Real GPUs schedule work in blocks of (up to) 1024 threads, so a block of one thread is like taking a bus to deliver one letter.</p>
+
+<h3>8.2 Vector addition with threads only (slide 18, <code>vecadd1.cu</code>)</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> add ( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c ) {
+    c[<span class="n">threadIdx.x</span>] = a[<span class="n">threadIdx.x</span>] + b[<span class="n">threadIdx.x</span>];
+}
+<span class="c">// launched as: add&lt;&lt;&lt; 1, N &gt;&gt;&gt;( dev_a, dev_b, dev_c );  →  1 block, N threads</span></code></pre>
+<p>Same idea, different index: now the block has N threads and each thread handles one element via its seat number, <code>threadIdx.x</code>. (Remember slide 19: this caps you at 1024 elements.)</p>
+
+<h3>8.3 The real version — blocks <em>and</em> threads (slides 20–21)</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> add( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c) {
+    <span class="k">int</span> index = <span class="n">threadIdx.x</span> + <span class="n">blockIdx.x</span> * <span class="n">blockDim.x</span>;
+    c[index] = a[index] + b[index];
+}
+<span class="c">// #define N 512, #define THREADS_PER_BLOCK 256  → 512/256 = 2 blocks of 256</span>
+add<span class="n">&lt;&lt;&lt; N/THREADS_PER_BLOCK, THREADS_PER_BLOCK &gt;&gt;&gt;</span>( dev_a, dev_b, dev_c );</code></pre>
+<p>This is the one to memorize — it's the pattern every large CUDA project uses, just generalized. If you can write this from memory and explain the index line, you've passed the most technical part of this course.</p>
+
+<h3>8.4 The dot product — the “interesting” example (slides 22–25)</h3>
+<p>Vector addition was easy because each output needed exactly one thread. A <b>dot product</b> is different: it produces <b>one single number</b> from N products. So thousands of threads must compute tiny pieces and then <b>combine them into one result</b>. That's what slides 22–25 are really about: thread cooperation.</p>
+
+<pre><code><span class="c">// Step 1 (slide 22): each thread makes ONE product — but now what?</span>
+<span class="k">__global__</span> <span class="k">void</span> dot ( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c ) {
+    <span class="k">int</span> temp = a[<span class="n">threadIdx.x</span>] * b[<span class="n">threadIdx.x</span>];   <span class="c">// a partial answer… then?</span>
+}</code></pre>
+<p>Everyone computed a product; nobody can see anyone else's product (each thread's <code>temp</code> is private). The slide's question — <em>“How to compute the final sum?”</em> — is the whole challenge.</p>
+
+<p><b>Step 2 (slides 23–24): let the threads share a whiteboard.</b> CUDA gives each block a small, extremely fast, on-chip scratchpad called <b>shared memory</b>, declared with <code>__shared__</code>. Threads in the same block can all read and write it, so they can drop their partial products there and one thread can add them up:</p>
+
+<pre><code><span class="k">__global__</span> <span class="k">void</span> dot( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c ) {
+    <span class="k">__shared__</span> <span class="k">int</span> temp[N];                            <span class="c">// a whiteboard per BLOCK</span>
+    temp[<span class="n">threadIdx.x</span>] = a[<span class="n">threadIdx.x</span>] * b[<span class="n">threadIdx.x</span>];  <span class="c">// everyone posts their product</span>
+    <span class="f">__syncthreads</span>();                                <span class="c">// WAIT until every teammate has posted</span>
+    <span class="k">if</span>( 0 == <span class="n">threadIdx.x</span> ) {                        <span class="c">// ONE thread does the summing</span>
+        <span class="k">int</span> sum = 0;
+        <span class="k">for</span>( <span class="k">int</span> i = 0; i &lt; N; i++ ) sum += temp[i];
+        *c = sum;                                    <span class="c">// write the final answer</span>
+    }
+}</code></pre>
+
+<p>The two new ideas, in plain words:</p>
+<ul>
+  <li><code>__syncthreads()</code> = <b>“everybody stop here until the whole team has caught up.”</b> Without it, thread 0 might start summing before other threads have written their values — it would read uninitialized garbage. This barrier only works <b>within a block</b>; it can't synchronize different blocks.</li>
+  <li><b>Why only thread 0 sums?</b> Because the 1,000 threads would otherwise all compute the same sum and all write <code>*c</code> — a thousand redundant writes to the same spot, racing each other. Letting one thread do the final loop is simple and correct (a real optimization would have threads sum in a tree, but the deck keeps it simple).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="cooperate">9. The hard part: race conditions and atomics (slide 25)</h2>
+
+<p>Slide 24 ends with a complaint: <em>“Launching with one block will not utilize much of the GPU.”</em> True — a single block of N threads leaves most of the stadium empty. So slide 25 goes multi-block:</p>
+
+<pre><code><span class="c">// slide 25's idea: EACH BLOCK computes a partial sum of its own chunk</span>
+dot<span class="n">&lt;&lt;&lt; N/THREADS_PER_BLOCK, THREADS_PER_BLOCK &gt;&gt;&gt;</span>( dev_a, dev_b, dev_c );</code></pre>
+<p>Now every block has its own <code>temp[]</code> whiteboard, computes its own local sum… and then all of them want to add that partial sum into the single global variable <code>*c</code>:</p>
+
+<pre><code>*c += sum;   <span class="c">// ???</span></code></pre>
+
+<h3>Why this line is dangerous: the race condition</h3>
+<p><code>*c += sum</code> is secretly <b>three</b> operations: (1) read <code>*c</code>, (2) add <code>sum</code>, (3) write back. If two blocks do this at the same instant:</p>
+
+<table>
+  <tr><th>Time</th><th>Block 0</th><th>Block 1</th><th>Value of *c</th></tr>
+  <tr><td>t1</td><td>reads *c → 100</td><td></td><td>100</td></tr>
+  <tr><td>t2</td><td></td><td>reads *c → 100</td><td>100</td></tr>
+  <tr><td>t3</td><td>writes 100+5 → 105</td><td></td><td>105</td></tr>
+  <tr><td>t4</td><td></td><td>writes 100+7 → 107</td><td><b>107 ✗</b> (should be 112)</td></tr>
+</table>
+<p>Block 0's contribution was silently <b>overwritten</b>. The answer is wrong, and it's wrong only <em>sometimes</em> — depending on timing. That's the nightmare property of races: they pass your tests on your machine and fail during the exam demo.</p>
+
+<div class="card plain">
+  <span class="lab">The fix: atomics (slide 25's list)</span>
+  <p>An <b>atomic</b> operation does read-modify-write as <b>one indivisible step</b> — no other thread can squeeze in between. CUDA provides them for exactly this:</p>
+  <pre style="margin-top:10px"><code>atomicAdd(c, sum);   <span class="c">// "add sum to *c, and don't let anyone interrupt you"</span></code></pre>
+  <p>The slide lists the whole family: <code>atomicAdd()</code> <code>atomicSub()</code> <code>atomicMin()</code> <code>atomicMax()</code> <code>atomicInc()</code> <code>atomicDec()</code> <code>atomicExch()</code> <code>atomicCAS()</code> — you add, subtract, take min/max, increment, decrement, exchange, and compare-and-swap, all safely. <b>atomicAdd</b> is the one you'll actually use for reductions like this.</p>
+</div>
+
+<div class="card warn">
+  <span class="lab">Two gotchas the slide doesn't spell out</span>
+  <p><b>1.</b> Slide 25's code still writes <code>*c = sum</code> — if you literally run multi-block code with <code>*c = sum</code>, blocks overwrite each other's partial sums entirely. The correct multi-block code uses <code>atomicAdd(c, sum)</code>. <b>2.</b> The result accumulator must start at <b>zero</b> before the kernel runs (<code>cudaMemset(dev_c, 0, sizeof(int))</code> or copy a 0 over), or you're adding onto whatever garbage was in that memory.</p>
+</div>
+
+<h3>The corrected multi-block dot product</h3>
+<pre><code><span class="k">__global__</span> <span class="k">void</span> dot( <span class="k">int</span> *a, <span class="k">int</span> *b, <span class="k">int</span> *c ) {
+    <span class="k">__shared__</span> <span class="k">int</span> temp[THREADS_PER_BLOCK];
+    <span class="k">int</span> index = <span class="n">threadIdx.x</span> + <span class="n">blockIdx.x</span> * <span class="n">blockDim.x</span>;   <span class="c">// ← global index (slide 20)</span>
+    temp[<span class="n">threadIdx.x</span>] = a[index] * b[index];                <span class="c">// my chunk's product</span>
+    <span class="f">__syncthreads</span>();                                        <span class="c">// wait for my block</span>
+    <span class="k">if</span>( 0 == <span class="n">threadIdx.x</span> ) {
+        <span class="k">int</span> sum = 0;
+        <span class="k">for</span>( <span class="k">int</span> i = 0; i &lt; THREADS_PER_BLOCK; i++ ) sum += temp[i];
+        <span class="f">atomicAdd</span>( c, sum );   <span class="c">// one safe add per block — no race</span>
+    }
+}
+<span class="c">// in main: cudaMemset(dev_c, 0, sizeof(int)); then launch dot&lt;&lt;&lt;N/THREADS_PER_BLOCK, THREADS_PER_BLOCK&gt;&gt;&gt;</span></code></pre>
+<p class="small">Full runnable version with error-free main(): see <code>code/dot_product.cu</code> in this workspace.</p>
+
+<!-- ============================================================ -->
+<h2 id="bugs">10. “Wait — the slide code looks wrong” (you're right)</h2>
+<p>Several slides show <em>skeleton</em> code, not compilable programs. Don't let it shake your confidence — you're reading it correctly. Here's what's actually off, and the fix for each:</p>
+
+<table>
+  <tr><th>Slide</th><th>What's printed</th><th>What it should be</th></tr>
+  <tr>
+    <td>17</td>
+    <td><code>Int* a, b, c;</code></td>
+    <td><code>int *a, *b, *c;</code> — capital “I” is a typo, and the stars must each be written: <code>int* a, b, c</code> would make <code>b</code> and <code>c</code> plain ints!</td>
+  </tr>
+  <tr>
+    <td>17–18</td>
+    <td><code>int size = sizeof(int);</code> then <code>cudaMalloc(..., size)</code> for arrays of N=512</td>
+    <td><code>int size = N * sizeof(int);</code> — the code as printed allocates 4 bytes and then indexes 512 elements, which is out-of-bounds. The slide is illustrating the <em>shape</em> of the calls, not bytes.</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td><code>cudaMemcpy(dev_c, &amp;c, size, cudaMemcpyHostToDevice);</code> before the kernel</td>
+    <td>Harmless but pointless in that example (the kernel overwrites <code>*c</code>). Skip it unless the kernel reads the current value — but do <em>not</em> skip it for the dot-product accumulator, which must start at 0.</td>
+  </tr>
+  <tr>
+    <td>24–25</td>
+    <td>Dot kernels index with <code>threadIdx.x</code> only, even in the multi-block version</td>
+    <td>Multi-block code needs the full formula <code>threadIdx.x + blockIdx.x*blockDim.x</code>, or every block would process elements 0…T-1 and the blocks after the first would be computing duplicate work.</td>
+  </tr>
+  <tr>
+    <td>25</td>
+    <td><code>*c = sum;</code> inside a multi-block launch</td>
+    <td><code>atomicAdd(c, sum);</code> — otherwise the blocks overwrite each other (see top of this section's table above — the race-condition demo in section 9).</td>
+  </tr>
+</table>
+<p>Exam tip: these slides are the original source material for your course, so in an exam reproduce the pattern <em>and</em> write the corrected version if the question asks for a working program. You can cite that the fragment shown is a skeleton.</p>
+
+<!-- ============================================================ -->
+<h2 id="compare">11. CUDA vs MPI vs UPC (slides 26–27) — pure exam vocabulary</h2>
+<p>These two slides have no code; they're asking “what does the word <em>thread / core / process / task</em> mean in each programming model?” Here's the whole thing as one table:</p>
+
+<table>
+  <tr><th></th><th>CUDA (GPU)</th><th>MPI (distributed memory)</th><th>UPC (shared memory)</th></tr>
+  <tr><td><b>Basic unit</b></td><td>Thread, running on a GPU core</td><td>Process (one per CPU core)</td><td>Thread (fixed number at start)</td></tr>
+  <tr><td><b>Memory</b></td><td>Separate host &amp; device memory; global/shared/registers on GPU</td><td>Each process has its <b>own</b> memory space</td><td>Private memory + one <b>globally shared</b> address space</td></tr>
+  <tr><td><b>How units communicate</b></td><td>Shared memory (inside a block), atomics, memory copies</td><td><b>Message passing</b> (send/receive)</td><td>Implicitly, by reading/writing shared memory</td></tr>
+  <tr><td><b>Granularity</b></td><td>Very fine (thousands of threads)</td><td>Coarse (a few big processes)</td><td>Moderate</td></tr>
+  <tr><td><b>Best for</b></td><td>Massively parallel, fine-grained math on one machine's GPU</td><td>Cluster/network of machines</td><td>Bridging shared &amp; distributed models across cores/nodes</td></tr>
+  <tr><td><b>Programmer launches…</b></td><td>Kernels over a grid of blocks (host CPU drives)</td><td>One process per rank, often with OpenMP inside (hybrid)</td><td>THREADS, each acts like an independent process w.r.t. private data</td></tr>
+</table>
+<p class="small">Memory sentence for the exam: <em>CUDA = fine-grained threads on GPU; MPI = coarse processes with message passing; UPC = threads with a shared global address space.</em></p>
+
+<!-- ============================================================ -->
+<h2 id="gotchas">12. Beginner-mistake cheat-sheet</h2>
+<ul>
+  <li><b>Passing a host pointer to a kernel.</b> Wrap-up: any pointer that a kernel dereferences must come from <code>cudaMalloc</code>. Result of the mistake: “illegal memory access” crash.</li>
+  <li><b>Bytes vs elements.</b> <code>cudaMemcpy(dst, src, N*sizeof(int), ...)</code> — not <code>sizeof(int)</code>.</li>
+  <li><b>Forgetting to copy results back.</b> The GPU's memory dies with <code>cudaFree</code>; your host array never updates unless you <code>cudaMemcpy</code> DeviceToHost.</li>
+  <li><b>Reading <code>c</code> on the host right after launching.</b> The launch is asynchronous-ish and the results are in <em>device</em> memory. Copy back first, then print.</li>
+  <li><b>Assuming blocks run in order.</b> They don't. Never write code that depends on block 3 finishing before block 4.</li>
+  <li><b>Using <code>__syncthreads()</code> to guard data shared <em>across</em> blocks.</b> It only synchronizes within one block. Across blocks: atomics, or launch a second kernel.</li>
+  <li><b>Missing the <code>if (threadIdx.x == 0)</code> on the final write.</b> If all threads write the same scalar, you're back to race conditions.</li>
+  <li><b>Block size not dividing N.</b> <code>N/THREADS_PER_BLOCK</code> truncates; guard the tail with <code>if (index &lt; N)</code> (see the runnable code in <code>code/</code>).</li>
+  <li><b>Forgetting to initialize the atomic accumulator to zero.</b></li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="quiz">13. Self-check quiz</h2>
+<p>Answer before opening each one. If you can do all nine, you understand this deck better than most of the class.</p>
+
+<details>
+  <summary>1. What's the difference between <code>__global__</code> and <code>__device__</code>?</summary>
+  <p><code>__global__</code> functions are <b>kernels</b>: launched from the host (CPU), run on the device (GPU), and called with the <code>&lt;&lt;&lt;...&gt;&gt;&gt;</code> syntax. <code>__device__</code> functions run on the GPU too, but are callable <b>only from other GPU code</b> — helper functions the kernels use. (Slide 11's table.)</p>
+</details>
+
+<details>
+  <summary>2. Why can't a kernel just read your <code>int a[100]</code> from <code>main</code>?</summary>
+  <p>Because the GPU has its own memory. The host array lives in CPU RAM, which isn't accessible to GPU threads. You must <code>cudaMalloc</code> a device array and <code>cudaMemcpy</code> the data over first.</p>
+</details>
+
+<details>
+  <summary>3. <code>add&lt;&lt;&lt;4, 8&gt;&gt;&gt;(...)</code> — how many executions of <code>add</code>, and what global index does thread 3 of block 2 compute (with <code>blockDim.x = 8</code>)?</summary>
+  <p>4 × 8 = <b>32 executions</b>. Index = <code>threadIdx.x + blockIdx.x*blockDim.x = 3 + 2*8 = 19</code>.</p>
+</details>
+
+<details>
+  <summary>4. Why is <code>__syncthreads()</code> needed in the dot product kernel?</summary>
+  <p>Thread 0 sums <code>temp[]</code>, but <code>temp[]</code> is filled by <em>all</em> threads. Without the barrier, thread 0 could reach the summing loop before other threads wrote their products, and it would add uninitialized values. <code>__syncthreads()</code> makes every thread in the block wait until all have finished their write.</p>
+</details>
+
+<details>
+  <summary>5. What is a race condition, in one sentence? How does <code>atomicAdd</code> fix it?</summary>
+  <p>A race condition is when two threads read-modify-write the same location concurrently, so one update gets lost (last writer wins). <code>atomicAdd</code> performs the read-add-write as a single indivisible operation, so the updates serialize correctly instead of clobbering each other.</p>
+</details>
+
+<details>
+  <summary>6. What are the three CUDA memory spaces in slide 6, and how do they compare?</summary>
+  <p><b>Global</b>: visible to all threads, large but slow. <b>Shared</b>: visible only inside one block, small but very fast (on-chip). <b>Registers</b>: private to each thread, fastest of all. (Think: warehouse → team whiteboard → your own notepad.)</p>
+</details>
+
+<details>
+  <summary>7. Why does the deck go from “1 block of N threads” (slide 24) to “N/T blocks of T threads” (slide 25)?</summary>
+  <p>Because a single block can't occupy the whole GPU — blocks are capped at (typically) 1024 threads and the GPU has many SMs. Many blocks → real parallelism. But then multiple blocks must combine their partial sums, which introduces the race condition that atomics solve.</p>
+</details>
+
+<details>
+  <summary>8. Why do <code>a</code> and <code>b</code> get passed by value but <code>c</code> by pointer in <code>add(int a, int b, int *c)</code>?</summary>
+  <p>Inputs can be copied over by value (the values are all the kernel needs). The output must be <em>stored</em> somewhere the GPU can write — and that's only device memory — so the kernel needs the address of a device variable: a device pointer.</p>
+</details>
+
+<details>
+  <summary>9. Which model matches: “processes with private memory that communicate by message passing”?</summary>
+  <p><b>MPI.</b> UPC uses threads with a global shared address space; CUDA uses (GPU) threads organized in blocks/grids. (Slides 26–27.)</p>
+</details>
+
+<!-- ============================================================ -->
+<h2 id="glossary">14. Glossary</h2>
+<div class="kv">
+  <div>Host</div><div>The CPU and its memory. Your normal C program lives here.</div>
+  <div>Device</div><div>The GPU and its memory (VRAM). Kernels live here.</div>
+  <div>Kernel</div><div>A <code>__global__</code> function — the unit of work you ship to the GPU. Launched with <code>&lt;&lt;&lt;blocks, threads&gt;&gt;&gt;</code>.</div>
+  <div>Thread</div><div>The smallest unit of execution; one “worker” running the kernel body once.</div>
+  <div>Block</div><div>A team of threads that can share <code>__shared__</code> memory and be synchronized with <code>__syncthreads()</code>.</div>
+  <div>Grid</div><div>All blocks of one kernel launch.</div>
+  <div>SM (Streaming Multiprocessor)</div><div>A cluster of CUDA cores on the chip (e.g. 68 SMs × 128 cores on the RTX 3080). Blocks get assigned to SMs by the hardware scheduler.</div>
+  <div>Global memory</div><div>GPU's main VRAM. All threads can touch it; biggest and slowest.</div>
+  <div>Shared memory</div><div>Fast on-chip scratchpad, one per block, declared <code>__shared__</code>.</div>
+  <div>Registers</div><div>Per-thread ultra-fast storage (where <code>int temp</code> etc. live).</div>
+  <div><code>cudaMalloc / cudaFree</code></div><div>GPU versions of <code>malloc / free</code>.</div>
+  <div><code>cudaMemcpy</code></div><div>Copies between host and device; you must state the direction (HostToDevice / DeviceToHost).</div>
+  <div><code>cudaMemset</code></div><div>Fills device memory with a byte value — handy to zero an accumulator.</div>
+  <div><code>__syncthreads()</code></div><div>Barrier inside a block: all threads wait until everyone arrives.</div>
+  <div>Atomic operation</div><div>An indivisible memory update (e.g. <code>atomicAdd</code>) that is safe under concurrency.</div>
+  <div>Race condition</div><div>A bug where the result depends on the timing of concurrent threads.</div>
+  <div>Reduction</div><div>Turning many values into one (dot product, sum, max) — the classic pattern requiring cooperation.</div>
+  <div>GPGPU</div><div>General-Purpose computing on GPUs: using graphics chips for non-graphics math.</div>
+  <div>GFLOP/s</div><div>Billions of floating-point operations per second; the usual way to quote GPU throughput.</div>
+  <div>nvcc</div><div>NVIDIA's CUDA compiler: splits your file into GPU code and ordinary C code.</div>
+</div>
+
+<footer>
+  <p><b>How to study this:</b> read sections 4 → 6 → 7 in order and write the “combined” vector-add from memory. Then read section 9 until the race-condition table feels obvious. Slides 1–9 are motivation only; slides 26–27 are memorizable definition tables.</p>
+  <p>Companion files in this workspace: <code>code/vector_add.cu</code> and <code>code/dot_product.cu</code> — complete, corrected, ready to compile with <code>nvcc</code>. No GPU of your own? Paste them into a Google Colab notebook and run with a GPU runtime.</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPI Explained - For Humans</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f8f9ff; color:#1e293b; line-height:1.6}
+  .container{max-width:900px;margin:0 auto;padding:24px}
+  .hero{background: linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#ec4899 100%); color:white; border-radius:24px; padding:40px; margin:20px 0; position:relative; overflow:hidden}
+  .hero::after{content:""; position:absolute; right:-50px; top:-50px; width:250px; height:250px; background:rgba(255,255,255,0.1); border-radius:50%;}
+  .hero h1{font-size:42px; line-height:1.1; margin-bottom:12px; position:relative}
+  .hero p{font-size:18px; opacity:0.95; max-width:600px; position:relative}
+  .badge{display:inline-block; background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); padding:6px 14px; border-radius:999px; font-size:13px; font-weight:700; margin-bottom:16px; letter-spacing:0.5px}
+  .card{background:white; border-radius:16px; padding:28px; margin:20px 0; box-shadow:0 4px 20px rgba(0,0,0,0.06); border:1px solid #e2e8f0}
+  .card h2{font-size:24px; color:#1e293b; margin-bottom:10px; display:flex; align-items:center; gap:10px}
+  .card h3{font-size:18px; color:#4f46e5; margin:18px 0 8px}
+  .num{width:32px; height:32px; background:#4f46e5; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0}
+  .analogy{background:#fffbeb; border:2px dashed #f59e0b; border-radius:12px; padding:16px 20px; margin:16px 0}
+  .analogy strong{color:#b45309}
+  .houses{display:flex; gap:12px; flex-wrap:wrap; margin:16px 0}
+  .house{flex:1; min-width:160px; background:#f1f5f9; border:2px solid #cbd5e1; border-radius:12px; padding:16px; text-align:center}
+  .house .icon{font-size:32px}
+  .house b{display:block; margin:6px 0 4px}
+  .house small{color:#64748b}
+  .code{background:#0f172a; color:#e2e8f0; border-radius:12px; padding:18px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13.5px; overflow:auto; line-height:1.7; margin:12px 0; position:relative}
+  .code .comment{color:#64748b}
+  .code .kw{color:#c084fc}
+  .code .fn{color:#7dd3fc}
+  .code .str{color:#86efac}
+  .tag{display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; background:#ede9fe; color:#6d28d9; margin-right:6px; vertical-align:middle}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr} .hero h1{font-size:32px}}
+  .collective{border:2px solid #e2e8f0; border-radius:14px; padding:16px; text-align:center; transition:all 0.2s}
+  .collective:hover{border-color:#4f46e5; transform:translateY(-2px); box-shadow:0 8px 20px rgba(79,70,229,0.1)}
+  .collective .name{font-weight:800; color:#4f46e5; margin:8px 0 4px}
+  .collective small{color:#64748b; font-size:13px}
+  .arrow{color:#4f46e5; font-weight:900}
+  .vs{display:flex; align-items:center; gap:12px; background:#f8fafc; border-radius:12px; padding:14px; margin:12px 0}
+  .vs > div{flex:1; text-align:center; padding:12px; border-radius:10px}
+  .vs .a{background:#ede9fe; border:2px solid #ddd6fe}
+  .vs .b{background:#fce7f3; border:2px solid #fbcfe8}
+  .envelope{border:2px solid #e2e8f0; border-radius:12px; padding:12px; display:flex; gap:10px; align-items:center; margin:8px 0; background:white}
+  .envelope .field{flex:1; background:#f8fafc; border-radius:8px; padding:8px 10px; text-align:center; font-size:12px; border:1px solid #e2e8f0}
+  .envelope .field b{display:block; font-size:13px; color:#4f46e5}
+  .warning{background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px 16px; margin:12px 0}
+  .warning b{color:#dc2626}
+  .success{background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px; margin:12px 0}
+  .success b{color:#15803d}
+  .step{display:flex; gap:14px; margin:14px 0}
+  .step-num{width:28px; height:28px; background:#4f46e5; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0; margin-top:2px}
+  .cheat{background:#0f172a; color:white; border-radius:16px; padding:24px}
+  .cheat table{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px}
+  .cheat th{text-align:left; color:#94a3b8; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px; border-bottom:1px solid #334155}
+  .cheat td{padding:10px 8px; border-bottom:1px solid #1e293b}
+  .cheat td:last-child{color:#cbd5e1}
+  .cheat code{color:#7dd3fc; background:rgba(125,211,252,0.1); padding:2px 6px; border-radius:4px}
+  .interactive{cursor:pointer; user-select:none}
+  .rank-demo{display:flex; gap:10px; margin:14px 0; flex-wrap:wrap}
+  .rank-box{flex:1; min-width:140px; background:white; border:2px solid #e2e8f0; border-radius:12px; padding:14px; text-align:center}
+  .rank-box.active{border-color:#4f46e5; background:#ede9fe; transform:scale(1.03)}
+  .rank-box .r{font-size:28px; font-weight:900; color:#4f46e5}
+  .btn{background:#4f46e5; color:white; border:none; padding:10px 18px; border-radius:999px; font-weight:700; cursor:pointer}
+  .btn:active{transform:scale(0.98)}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">⚡️ YOUR 15-MINUTE RESCUE GUIDE</div>
+    <h1>MPI Finally<br>Makes Sense</h1>
+    <p>The tutorial you sent is 13 pages of scary definitions. Here is the same thing in plain English, with pictures, so you will never forget it.</p>
+    <p style="margin-top:12px; font-size:14px; opacity:0.8">No shared memory. No magic. Just a group of workers sending envelopes.</p>
+  </div>
+
+  <!-- 1. WHY -->
+  <div class="card">
+    <h2><span class="num">1</span> Why Does MPI Even Exist?</h2>
+    <p>Your laptop has 1 brain (CPU). Supercomputers have <b>thousands</b>. How do you make them work together on ONE big problem?</p>
+    
+    <div class="analogy">
+      <strong>🍕 Analogy: The Pizza Factory</strong><br>
+      You need to make 10,000 pizzas. One chef = 10,000 hours. 100 chefs = 100 hours — <b>IF they can coordinate.</b> MPI is the walkie-talkie system they use to coordinate. No walkie-talkie = chaos, pizzas duplicated or missed.
+    </div>
+
+    <div class="houses">
+      <div class="house"><div class="icon">❌</div><b>Shared Memory</b><small>Like all chefs sharing one kitchen counter. They step on each other. Works for 2-4 chefs, fails for 1000.</small></div>
+      <div class="house" style="border-color:#4f46e5; background:#ede9fe"><div class="icon">✅</div><b>Message Passing (MPI)</b><small>Each chef has his OWN kitchen. They send ingredients via envelopes. Works for 10,000 chefs.</small></div>
+    </div>
+    <p style="color:#64748b; font-size:14px; margin-top:8px">→ That's why your PDF says <i>"Local address space per node — NO physically shared memory — Processes communicate by explicit send/receive pairs"</i>. It's just separate kitchens + envelopes.</p>
+  </div>
+
+  <!-- 2. SPMD -->
+  <div class="card">
+    <h2><span class="num">2</span> The One Pattern That Rules Them All: SPMD</h2>
+    <p><span class="tag">MOST IMPORTANT</span> <b>Single Program, Multiple Data</b></p>
+    <p>You write <b>ONE</b> program. The computer makes <b>P photocopies</b> and runs the <b>same code</b> on every processor. The trick: each copy checks its ID number to decide what to do.</p>
+    
+    <div class="code">
+<span class="comment">// You write this ONCE</span><br>
+<span class="kw">if</span> (rank == <span class="str">0</span>) { <span class="comment">// I'm the boss</span><br>
+&nbsp;&nbsp;print("I will distribute work");<br>
+} <span class="kw">else</span> { <span class="comment">// I'm a worker</span><br>
+&nbsp;&nbsp;print("I will work on my chunk");<br>
+}
+    </div>
+
+    <div class="analogy">
+      <strong>🏫 Analogy: Exam Papers</strong><br>
+      Teacher gives <b>the exact same exam</b> to 30 students. But question 1 says: <i>"If your student ID is even, solve problem A, if odd, solve problem B"</i>. Same paper, different work based on ID. That's SPMD. <b>Rank = your student ID (0 to P-1).</b>
+    </div>
+    <p style="background:#f0fdf4; padding:12px; border-radius:8px; font-size:14px; margin-top:12px">Your PDF says: <i>"Use the rank … an ID ranging from 0 to (P-1) … to select between a set of tasks"</i> — that's literally this.</p>
+  </div>
+
+  <!-- 3. THE 4 LINES -->
+  <div class="card">
+    <h2><span class="num">3</span> The 4 Magical Lines (90% of MPI is this)</h2>
+    <p>Every MPI program looks identical. Learn this skeleton and you can read any MPI code:</p>
+    
+    <div class="code">
+<span class="comment">#include &lt;mpi.h&gt;  // 0. Must include this, like #include &lt;stdio.h&gt;</span><br><br>
+<span class="kw">int main</span>(<span class="kw">int</span> argc, <span class="kw">char</span> *argv[]){<br>
+&nbsp;&nbsp;<span class="kw">int</span> rank, size;<br><br>
+&nbsp;&nbsp;<span class="fn">MPI_Init</span>(&argc,&argv); <span class="comment">// 1. START MPI — wakes up all processes</span><br>
+&nbsp;&nbsp;<span class="fn">MPI_Comm_rank</span>(MPI_COMM_WORLD, &rank); <span class="comment">// 2. WHO AM I? (0,1,2...)</span><br>
+&nbsp;&nbsp;<span class="fn">MPI_Comm_size</span>(MPI_COMM_WORLD, &size); <span class="comment">// 3. HOW MANY ARE WE?</span><br><br>
+&nbsp;&nbsp;printf(<span class="str">"Hello, I'm %d of %d\n"</span>, rank, size); <span class="comment">// YOUR WORK HERE</span><br><br>
+&nbsp;&nbsp;<span class="fn">MPI_Finalize</span>(); <span class="comment">// 4. STOP MPI — no MPI calls after this!</span><br>
+&nbsp;&nbsp;<span class="kw">return</span> 0;<br>
+}
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div style="background:#f8fafc; padding:14px; border-radius:10px; border:1px solid #e2e8f0">
+        <b style="color:#4f46e5">MPI_COMM_WORLD</b><br>
+        <small>Sounds scary, just means <b>"the group chat that includes EVERYONE"</b>. There can be smaller groups, but 99% of time you use WORLD.</small>
+      </div>
+      <div style="background:#f8fafc; padding:14px; border-radius:10px; border:1px solid #e2e8f0">
+        <b style="color:#4f46e5">rank & size</b><br>
+        <small>If you run <code>mpirun -np 4 ./hello</code>, size=4, ranks are 0,1,2,3. Rank 0 is often "the boss".</small>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <b>Try it mentally:</b> Click a button to simulate <code>mpirun -np 4</code>
+      <div class="rank-demo" id="rankDemo">
+        <div class="rank-box" data-rank="0"><div class="r">0</div><b>Boss</b><small>Hello, I'm 0 of 4</small></div>
+        <div class="rank-box" data-rank="1"><div class="r">1</div><b>Worker</b><small>Hello, I'm 1 of 4</small></div>
+        <div class="rank-box" data-rank="2"><div class="r">2</div><b>Worker</b><small>Hello, I'm 2 of 4</small></div>
+        <div class="rank-box" data-rank="3"><div class="r">3</div><b>Worker</b><small>Hello, I'm 3 of 4</small></div>
+      </div>
+      <button class="btn" onclick="cycle()">▶ Run Again (highlight each)</button>
+      <small style="color:#64748b; margin-left:10px">Same program printed 4 times, each with its own rank!</small>
+    </div>
+    <p class="warning" style="margin-top:14px"><b>⚠️ Trap from PDF:</b> <code>printf</code> runs on EVERY rank. So with 4 processes you see 4 lines! And you must call MPI_Init exactly once, and Finalize at the very end.</p>
+  </div>
+
+  <!-- 4. TWO WAYS TO TALK -->
+  <div class="card">
+    <h2><span class="num">4</span> How They Talk: 2 Types of Communication</h2>
+    
+    <div class="vs">
+      <div class="a">
+        <div style="font-size:26px">✉️ → 👤</div>
+        <b>Point-to-Point</b><br><small>One sender → One receiver<br><code>MPI_Send / MPI_Recv</code></small><br><small style="color:#7c3aed">Like a private DM</small>
+      </div>
+      <div style="font-weight:900; color:#94a3b8">VS</div>
+      <div class="b">
+        <div style="font-size:26px">📢 → 👥👥👥</div>
+        <b>Collective</b><br><small>Involves the WHOLE group<br><code>Bcast, Scatter, Gather, Reduce</code></small><br><small style="color:#ec4899">Like a group announcement</small>
+      </div>
+    </div>
+    <p>Modern MPI code uses <b>almost ONLY Collectives</b>. Why? Because the classic pattern is:</p>
+    <div style="background:#f1f5f9; border-radius:12px; padding:16px; display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:10px; text-align:center">
+      <span style="background:white; padding:8px 14px; border-radius:999px; border:1px solid #cbd5e1">💻 Compute locally</span>
+      <span class="arrow">→</span>
+      <span style="background:#4f46e5; color:white; padding:8px 14px; border-radius:999px">📡 Communicate (collective)</span>
+      <span class="arrow">→</span>
+      <span style="background:white; padding:8px 14px; border-radius:999px; border:1px solid #cbd5e1">💻 Compute again</span>
+      <span style="font-size:12px; color:#64748b; width:100%; margin-top:4px">Repeat until done — that's the pattern on page 10 of your PDF!</span>
+    </div>
+  </div>
+
+  <!-- 5. SEND RECV -->
+  <div class="card">
+    <h2><span class="num">5</span> Point-to-Point: The Envelope (MPI_Send / Recv)</h2>
+    <p>Every message is an <b>envelope</b> with 5 things written on it:</p>
+    
+    <div class="envelope">
+      <div class="field"><b>📦 buf</b> what's inside</div>
+      <div class="field"><b>🔢 count</b> how many items</div>
+      <div class="field"><b>🏷️ datatype</b> MPI_INT, MPI_CHAR, MPI_DOUBLE...</div>
+      <div class="field"><b>👤 dest/source</b> who is it for/from</div>
+      <div class="field"><b>🔖 tag</b> like subject line (0-32767)</div>
+    </div>
+
+    <div class="code">
+<span class="comment">// Sender (Rank 0)</span><br>
+<span class="kw">char</span> msg[20] = <span class="str">"Hello, world"</span>;<br>
+<span class="fn">MPI_Send</span>(msg, <span class="str">13</span>, MPI_CHAR, <span class="str">1</span>, <span class="str">100</span>, MPI_COMM_WORLD);<br>
+<span class="comment">//         |    |      |       |   |    |</span><br>
+<span class="comment">//       buf count datatype dest tag communicator</span><br><br>
+<span class="comment">// Receiver (Rank 1)</span><br>
+<span class="fn">MPI_Recv</span>(msg, <span class="str">13</span>, MPI_CHAR, <span class="str">0</span>, <span class="str">100</span>, MPI_COMM_WORLD, &status);<br>
+<span class="comment">//                              source tag</span><br>
+    </div>
+
+    <div class="grid2">
+      <div class="success"><b>✅ Tag trick</b><br><small>Tags let you have different conversations. Rank 0 can send tag=100 for "data" and tag=200 for "done". Receiver can filter. Use <code>MPI_ANY_TAG</code> or <code>MPI_ANY_SOURCE</code> if you don't care.</small></div>
+      <div class="warning"><b>💀 Deadlock danger</b><br><small>If Rank 0 does Send to 1 and Rank 1 does Send to 0 at SAME time, both wait forever. Solution: use <code>MPI_Sendrecv</code> — it sends AND receives at once, no deadlock.</small></div>
+    </div>
+
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-top:14px">
+      <b>📖 Your PDF example (page 13 simplified):</b><br>
+      <small>Rank 0 does a loop: <code>for(i=1; i&lt;size; i++) MPI_Send(... to i)</code> — boss sends "Hello" to everyone.<br>Everyone else (rank !=0) does one <code>MPI_Recv(from 0)</code> and prints. Result you saw: every node prints "Hello, world". That's a manual broadcast — but there's an easier way…</small>
+    </div>
+  </div>
+
+  <!-- 6. COLLECTIVES VISUAL -->
+  <div class="card">
+    <h2><span class="num">6</span> Collectives: The 6 Superpowers (Memorize These Pictures!)</h2>
+    <p>Collectives are why MPI is easy. Instead of 100 Send/Recv, you call ONE line and everyone is coordinated.</p>
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px; margin:16px 0">
+      
+      <div class="collective">
+        <div style="font-size:28px">🚧</div>
+        <div class="name">BARRIER</div>
+        <div style="font-family:monospace; font-size:12px; background:#f1f5f9; padding:6px; border-radius:6px; margin:6px 0">MPI_Barrier(world)</div>
+        <small>Everyone waits at a wall until <b>ALL</b> arrive. No one passes early. Like "wait for all friends before entering cinema".</small>
+        <div style="margin-top:8px; font-size:12px; letter-spacing:2px">● ● ● ● <span class="arrow">→</span> ▮ <span class="arrow">→</span> ● ● ● ●</div>
+      </div>
+
+      <div class="collective" style="border-color:#4f46e5">
+        <div style="font-size:28px">📢</div>
+        <div class="name">BROADCAST (Bcast)</div>
+        <div style="font-family:monospace; font-size:12px; background:#ede9fe; padding:6px; border-radius:6px; margin:6px 0">MPI_Bcast(buf, count, type, root, world)</div>
+        <small><b>One → All.</b> Root has data, everyone gets a copy. Like teacher photocopying one handout for whole class.</small>
+        <div style="margin-top:8px; font-size:11px"><b>P0:[A]</b> → P0[A] P1[A] P2[A] P3[A]</div>
+      </div>
+
+      <div class="collective">
+        <div style="font-size:28px">🃏</div>
+        <div class="name">SCATTER</div>
+        <div style="font-family:monospace; font-size:12px; background:#f1f5f9; padding:6px; border-radius:6px; margin:6px 0">MPI_Scatter(sendbuf, ..., recvbuf, ..., root, world)</div>
+        <small><b>One → All, but different piece each.</b> Root deals cards: P0 gets A1, P1 gets A2... Like cutting a cake.</small>
+        <div style="margin-top:8px; font-size:11px">P0:[A,B,C,D] → P0[A] P1[B] P2[C] P3[D]</div>
+      </div>
+
+      <div class="collective" style="border-color:#ec4899">
+        <div style="font-size:28px">🧲</div>
+        <div class="name">GATHER</div>
+        <div style="font-family:monospace; font-size:12px; background:#fce7f3; padding:6px; border-radius:6px; margin:6px 0">MPI_Gather(sendbuf,..., recvbuf,..., root, world)</div>
+        <small><b>All → One.</b> Reverse of Scatter. Everyone sends their piece to root who assembles full array in rank order.</small>
+        <div style="margin-top:8px; font-size:11px">P0[a] P1[b] P2[c] P3[d] → P0:[a,b,c,d]</div>
+      </div>
+
+      <div class="collective">
+        <div style="font-size:28px">🧲🧲</div>
+        <div class="name">ALLGATHER</div>
+        <div style="font-family:monospace; font-size:12px; background:#f1f5f9; padding:6px; border-radius:6px; margin:6px 0">MPI_Allgather(...)</div>
+        <small><b>All → All.</b> Like Gather but <b>everyone</b> ends up with the full array. No root.</small>
+        <div style="margin-top:8px; font-size:11px">P0[a] P1[b] → Everyone[a,b]</div>
+      </div>
+
+      <div class="collective" style="border-color:#10b981; background:#f0fdf4">
+        <div style="font-size:28px">➕</div>
+        <div class="name">REDUCE / ALLREDUCE</div>
+        <div style="font-family:monospace; font-size:12px; background:#dcfce7; padding:6px; border-radius:6px; margin:6px 0">MPI_Reduce(send, recv, 1, type, MPI_SUM, root, world)</div>
+        <small><b>All → One (or All) with MATH.</b> Everyone has a number, combine with + * max etc. Root gets answer. Allreduce = everyone gets answer.</small>
+        <div style="margin-top:8px; font-size:11px">2, 4, 6, 8 → P0: <b>20</b> (sum)</div>
+      </div>
+
+    </div>
+
+    <div class="analogy" style="background:#ede9fe; border-color:#7c3aed">
+      <strong>🎯 How to remember: </strong><br>
+      <b>Bcast</b> = photocopier &nbsp;|&nbsp; <b>Scatter</b> = dealing cards &nbsp;|&nbsp; <b>Gather</b> = collecting homework &nbsp;|&nbsp; <b>Reduce</b> = calculator that sums everyone's answer
+    </div>
+  </div>
+
+  <!-- 7. REAL EXAMPLE -->
+  <div class="card">
+    <h2><span class="num">7</span> Real Example: Compute Average of 100 Numbers Together</h2>
+    <p>Your PDF does this on page 20-21. Here it is in human:</p>
+    
+    <div class="step"><div class="step-num">1</div><div><b>Root (P0) creates 100 random numbers</b> <small style="color:#64748b">[0.2, 0.8, 0.5, ...]</small></div></div>
+    <div class="step"><div class="step-num">2</div><div><b>SCATTER them:</b> 4 processes → each gets 25 numbers. <code>MPI_Scatter(100 numbers, 25 each, root=0)</code></div></div>
+    <div style="display:flex; gap:8px; margin:8px 0 8px 42px; flex-wrap:wrap">
+      <span style="background:#ede9fe; padding:6px 10px; border-radius:8px; font-size:12px">P0: 25 nums</span>
+      <span style="background:#ede9fe; padding:6px 10px; border-radius:8px; font-size:12px">P1: 25 nums</span>
+      <span style="background:#ede9fe; padding:6px 10px; border-radius:8px; font-size:12px">P2: 25 nums</span>
+      <span style="background:#ede9fe; padding:6px 10px; border-radius:8px; font-size:12px">P3: 25 nums</span>
+    </div>
+    <div class="step"><div class="step-num">3</div><div><b>Each computes local average</b> — no communication, just local math<br><small style="color:#64748b">P0 avg=0.51, P1 avg=0.53, P2 avg=0.49, P3 avg=0.52</small></div></div>
+    <div class="step"><div class="step-num">4</div><div><b>GATHER (or REDUCE):</b> Send locals back to root<br><code>MPI_Gather(local_avg → root)</code> or better <code>MPI_Reduce(local_sum with MPI_SUM)</code></div></div>
+    <div class="step"><div class="step-num">5</div><div><b>Root computes final average</b> = sum of all / 100 → <b style="color:#10b981">0.518!</b></div></div>
+
+    <div class="code">
+<span class="comment">// PSEUDOCODE - the whole logic in 5 lines</span><br>
+<span class="comment">// On root: generate 100 numbers</span><br>
+<span class="fn">MPI_Scatter</span>(all_numbers, 25, MPI_FLOAT, my_25, 25, MPI_FLOAT, 0, world);<br>
+my_avg = average(my_25); <span class="comment">// everyone does this locally</span><br>
+<span class="fn">MPI_Gather</span>(&my_avg, 1, MPI_FLOAT, all_avgs, 1, MPI_FLOAT, 0, world);<br>
+<span class="kw">if</span>(rank==0) final = average(all_avgs);<br>
+    </div>
+
+    <div class="success"><b>💡 Pro version (PDF page 25):</b> Instead of Gather + manual average, just do <code>MPI_Reduce(&local_sum, &global_sum, 1, MPI_FLOAT, MPI_SUM, 0, world)</code> — it sums everything in ONE step! Then divide by 100. Cleaner!</div>
+
+    <div style="margin-top:16px; background:#f1f5f9; border-radius:12px; padding:16px">
+      <b>Same idea with Matrix × Vector (PDF page 21):</b><br>
+      <small>Matrix A is 100×100. You have 4 tasks. Each task gets <b>25 rows</b> of A (Scatter). Vector B (length 100) is <b>Broadcast</b> to everyone. Each computes 25 elements of C. Then <b>Gather</b> cpart (25) from each into ctotal (100) on root. Done!</small>
+    </div>
+  </div>
+
+  <!-- 8. DEADLOCK ETC -->
+  <div class="card">
+    <h2><span class="num">8</span> 3 Traps That Kill Beginners (and How to Survive)</h2>
+    
+    <div class="warning">
+      <b>1. Deadlock — Two people waiting for each other to speak first</b><br>
+      <small>If you do: Rank0: Send to 1 → Recv from 1  and Rank1: Send to 0 → Recv from 0, both Sends block forever. <b>Fix:</b> Use <code>MPI_Sendrecv</code> (does both at once) or make one rank Send first, the other Recv first.</small>
+    </div>
+    <div class="warning">
+      <b>2. Count/Type Mismatch — Envelope says 10 ints but receiver expects 10 chars</b><br>
+      <small>Sender: <code>MPI_Send(buf, 10, MPI_INT...)</code> Receiver: <code>MPI_Recv(buf, 10, MPI_FLOAT...)</code> → CRASH or garbage. <b>Fix:</b> Always match count and datatype. For Bcast/Reduce, EVERY rank must use SAME count/type.</small>
+    </div>
+    <div class="warning">
+      <b>3. Forgetting that Collectives are SYNCHRONIZED</b><br>
+      <small>All ranks must call <code>MPI_Bcast</code> / <code>MPI_Barrier</code> / <code>MPI_Reduce</code>. If rank 2 skips it, everyone else hangs forever waiting for rank 2. <b>Fix:</b> No if-statements that make only some ranks call a collective (unless intentional with separate communicators).</small>
+    </div>
+  </div>
+
+  <!-- 9. CHEAT SHEET -->
+  <div class="card cheat">
+    <h2 style="color:white; border:none">📋 Ultimate Cheat Sheet — Print This</h2>
+    <p style="color:#94a3b8; font-size:13px">Copy this table to your exam / desk</p>
+    <table>
+      <tr><th>What you want</th><th>Function</th><th>One-line memory</th></tr>
+      <tr><td><code>MPI_Init</code> / <code>Finalize</code></td><td><code>MPI_Init(&argc,&argv)</code><br><code>MPI_Finalize()</code></td><td>Start/stop — always first/last</td></tr>
+      <tr><td>Who am I? / How many?</td><td><code>MPI_Comm_rank/world</code><br><code>MPI_Comm_size/world</code></td><td>Rank = 0 .. size-1</td></tr>
+      <tr><td>Private message</td><td><code>MPI_Send</code> / <code>MPI_Recv</code></td><td>Need matching buf,count,type,dest/source,tag</td></tr>
+      <tr><td>Safe private swap</td><td><code>MPI_Sendrecv</code></td><td>Use to avoid deadlock</td></tr>
+      <tr><td>Wait for everyone</td><td><code>MPI_Barrier(world)</code></td><td>Only returns when ALL called it</td></tr>
+      <tr><td>One → All (same data)</td><td><code>MPI_Bcast(buf,count,type,root,world)</code></td><td>Photocopier</td></tr>
+      <tr><td>One → All (split)</td><td><code>MPI_Scatter(send, sCount, sType, recv, rCount, rType, root, world)</code></td><td>Deal cards</td></tr>
+      <tr><td>All → One</td><td><code>MPI_Gather(send, sCount, sType, recv, rCount, rType, root, world)</code></td><td>Collect homework</td></tr>
+      <tr><td>All → All</td><td><code>MPI_Allgather(...)</code></td><td>Everyone gets full collection</td></tr>
+      <tr><td>All → One with math</td><td><code>MPI_Reduce(send, recv, count, type, MPI_SUM, root, world)</code></td><td>Ops: MPI_SUM, MPI_MAX, MPI_MIN, MPI_PROD</td></tr>
+      <tr><td>All → All with math</td><td><code>MPI_Allreduce(...)</code></td><td>= Reduce + Bcast</td></tr>
+    </table>
+    <p style="margin-top:14px; color:#7dd3fc; font-size:13px">Run with: <code>mpicc hello.c -o hello && mpirun -np 4 ./hello</code></p>
+  </div>
+
+  <div class="card" style="text-align:center; background:linear-gradient(135deg,#f0fdf4,#ecfdf5); border:2px solid #bbf7d0">
+    <h2 style="justify-content:center">🎉 You Got This!</h2>
+    <p>If you remember nothing else, remember:</p>
+    <p style="font-size:18px; font-weight:800; color:#15803d; margin:10px 0">“Same program, different rank. Separate kitchens, envelopes to talk. Collectives > Send/Recv.”</p>
+    <p style="color:#64748b; font-size:14px">Re-read this page once, then try to explain MPI to a friend using the pizza factory analogy. If you can, you’re ready for the exam.</p>
+    <p style="margin-top:12px; font-size:13px">Want me to quiz you, or translate this to French/Darija, or make a 1-page PDF cheat sheet for printing?</p>
+  </div>
+
+  <p style="text-align:center; color:#94a3b8; font-size:12px; margin:20px 0">Built from your 13-page MPI-Tutorial_compressed.pdf — simplified, not simplified away. Sources: mpitutorial.com, mpi-forum.org, Lawrence Livermore tutorials.</p>
+
+</div>
+
+<script>
+let idx=0;
+function cycle(){
+  document.querySelectorAll('.rank-box').forEach(b=>b.classList.remove('active'));
+  const boxes=document.querySelectorAll('.rank-box');
+  boxes[idx % boxes.length].classList.add('active');
+  idx++;
+  if(idx>=8) { idx=0; setTimeout(()=> boxes.forEach(b=>b.classList.remove('active')),800)}
+}
+</script>
+</body>
+</html>
